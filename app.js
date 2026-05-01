@@ -73,6 +73,52 @@ function buildCards() {
   });
 }
 
+// ── BINANCE WEBSOCKET (frontend se) ──
+function connectBinance() {
+  const symbols = ['btcusdt','ethusdt','bnbusdt','solusdt','xrpusdt'];
+  const streams = symbols.map(s => s + '@ticker').join('/');
+  const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    const data = msg.data;
+    const short = data.s.replace('USDT', '');
+    const price = parseFloat(data.c);
+    const change = parseFloat(data.P);
+
+    // Binance price update
+    const el = document.querySelector(`.ex-price-${short}-binance`);
+    if (el) {
+      el.textContent = formatPrice(price);
+      el.classList.remove('loading');
+      el.style.transition = 'color 0.3s';
+      el.style.color = '#00f5a0';
+      setTimeout(() => { el.style.color = ''; }, 500);
+    }
+
+    // Main price update
+    const priceEl = document.getElementById('price-' + short);
+    if (priceEl) {
+      priceEl.textContent = formatPrice(price);
+      priceEl.classList.remove('loading');
+    }
+
+    // Change badge
+    const changeEl = document.getElementById('change-' + short);
+    if (changeEl) {
+      changeEl.textContent = formatChange(change);
+      changeEl.className = 'change ' + (change >= 0 ? 'up' : 'down');
+    }
+
+    // Save
+    if (!priceData[short]) priceData[short] = {};
+    priceData[short].binance = price;
+  };
+
+  ws.onclose = () => setTimeout(connectBinance, 3000);
+}
+
+// ── BACKEND SE MEXC, KUCOIN, OKX ──
 async function fetchAllPrices() {
   const btn  = document.getElementById('refreshBtn');
   const icon = document.getElementById('refreshIcon');
@@ -87,11 +133,9 @@ async function fetchAllPrices() {
       const tokenData = data[token.short];
       if (!tokenData) return;
 
-      let mainPrice = null;
-
-      EXCHANGES.forEach(ex => {
-        const price = tokenData[ex.id];
-        const el = document.querySelector(`.ex-price-${token.short}-${ex.id}`);
+      ['mexc', 'kucoin', 'okx'].forEach(exId => {
+        const price = tokenData[exId];
+        const el = document.querySelector(`.ex-price-${token.short}-${exId}`);
         if (!el) return;
 
         if (price && !isNaN(price)) {
@@ -100,25 +144,12 @@ async function fetchAllPrices() {
           el.style.transition = 'color 0.3s';
           el.style.color = '#00f5a0';
           setTimeout(() => { el.style.color = ''; }, 500);
-          if (!mainPrice) mainPrice = price;
         } else {
           el.textContent = 'N/A';
           el.classList.remove('loading');
-          el.classList.add('error');
         }
       });
-
-      if (mainPrice) {
-        const priceEl = document.getElementById('price-' + token.short);
-        if (priceEl) {
-          priceEl.textContent = formatPrice(mainPrice);
-          priceEl.classList.remove('loading');
-        }
-      }
     });
-
-    // Binance WebSocket for change %
-    connectBinance();
 
     const now = new Date();
     document.getElementById('lastUpdated').textContent =
@@ -134,27 +165,6 @@ async function fetchAllPrices() {
   icon.classList.remove('spinning');
 }
 
-function connectBinance() {
-  const TOKENS_WS = ['btcusdt','ethusdt','bnbusdt','solusdt','xrpusdt'];
-  const streams = TOKENS_WS.map(t => t + '@ticker').join('/');
-  const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
-
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    const data = msg.data;
-    const short = data.s.replace('USDT', '');
-    const change = parseFloat(data.P);
-
-    const changeEl = document.getElementById('change-' + short);
-    if (changeEl) {
-      changeEl.textContent = formatChange(change);
-      changeEl.className = 'change ' + (change >= 0 ? 'up' : 'down');
-    }
-  };
-
-  ws.onclose = () => setTimeout(connectBinance, 3000);
-}
-
 function filterExchange(id, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
@@ -168,9 +178,10 @@ function filterExchange(id, el) {
   });
 }
 
-// Auto refresh har 30 second
-setInterval(fetchAllPrices, 30000);
+// Backend se har 1 second mein update
+setInterval(fetchAllPrices, 1000);
 
 // Start
 buildCards();
+connectBinance();
 fetchAllPrices();
