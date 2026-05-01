@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoWatch — Live Prices</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">₿</div>
+      <div class="logo-text">Crypto<span>Watch</span></div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </header>
+
+  <p class="last-updated" id="lastUpdated">Fetching prices...</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="filterExchange('all', this)">All</button>
+    <button class="tab" onclick="filterExchange('binance', this)">Binance</button>
+    <button class="tab" onclick="filterExchange('mexc', this)">MEXC</button>
+    <button class="tab" onclick="filterExchange('kucoin', this)">KuCoin</button>
+    <button class="tab" onclick="filterExchange('okx', this)">OKX</button>
+  </div>
+
+  <div class="token-grid" id="tokenGrid"></div>
+
+  <div style="text-align:center">
+    <button class="refresh-btn" id="refreshBtn" onclick="fetchAllPrices()">
+      <span id="refreshIcon">↻</span> Refresh Prices
+    </button>
+  </div>
+
+  <footer>
+    Data from Binance, MEXC, KuCoin & OKX &nbsp;·&nbsp; Auto-refreshes every 30 sec
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
